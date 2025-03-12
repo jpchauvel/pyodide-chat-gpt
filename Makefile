@@ -10,7 +10,7 @@ ARCHIVE := $(BUILD_DIR)/app.tar.gz
 .PHONY: all clean
 
 # Default target
-all: $(BUILD_DIR) $(ARCHIVE) copy-js copy-html
+all: clean $(BUILD_DIR) $(ARCHIVE) copy-js copy-html
 
 # Create build directory if it doesn't exist
 $(BUILD_DIR):
