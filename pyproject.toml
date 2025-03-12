@@ -1,0 +1,16 @@
+[project]
+name = "pyodide-chat-gpt"
+version = "0.1.0"
+description = "A small PoC Pyodide + OpenAI GPT integration"
+readme = "README.md"
+requires-python = "^3.13"
+authors = [
+  { name = "Jean-Pierre Chauvel", email = "jean.pierre@chauvel.org" }
+]
+license = "CC0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+
+[tool.black]
+line-length = 79
