@@ -59,6 +59,13 @@ async function setupPyodide() {
         sendMessageToPython(apiKey, userInput);
     });
 
+    // Add event listener for the Enter key on the input field
+    document.getElementById("user-input").addEventListener("keypress", (event) => {
+        if (event.key === "Enter") {
+            document.getElementById("send-button").click();
+        }
+    });
+
     await pyodide.runPythonAsync(`
         from main import main as py_main
 
