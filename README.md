@@ -16,7 +16,7 @@ make all
 Then you have to serve the static contect using Python's `http.server`:
 
 ```sh
-python3 -m http.server build
+python3 -m http.server --directory build
 ```
 
 Then open your browser and navigate to http://localhost:8000.
