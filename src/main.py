@@ -1,6 +1,5 @@
 import asyncio
 import json
-import ssl
 from urllib.parse import quote_plus
 
 import httpx
@@ -13,11 +12,11 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import js_module
 
 
-class URLLib3Transport(httpx.BaseTransport):
+class URLLib3Transport(httpx.AsyncBaseTransport):
     def __init__(self) -> None:
         self.pool = urllib3.PoolManager()
 
-    def handle_request(self, request: httpx.Request) -> httpx.Response:
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         payload = json.loads(request.content.decode("utf-8").replace("'", '"'))
         urllib3_response = self.pool.request(
             request.method,
@@ -35,8 +34,8 @@ class URLLib3Transport(httpx.BaseTransport):
         return httpx.Response(200, headers=headers, stream=stream)
 
 
-client: httpx.Client = httpx.Client(transport=URLLib3Transport())
-openai_client: openai.OpenAI = openai.OpenAI(
+client: httpx.AsyncClient = httpx.AsyncClient(transport=URLLib3Transport())
+openai_client: openai.AsyncOpenAI = openai.AsyncOpenAI(
     base_url="https://api.openai.com/v1/", api_key="", http_client=client
 )
 message_queue: asyncio.Queue[tuple[str, str]] = asyncio.Queue()
@@ -46,7 +45,7 @@ loop: asyncio.AbstractEventLoop | None = None
 async def handle_message(api_key: str, message: str) -> None:
     # Interactive with the OpenAI API
     openai_client.api_key = api_key
-    response = openai_client.chat.completions.create(
+    response = await openai_client.chat.completions.create(
         messages=[
             {
                 "role": "user",
@@ -57,7 +56,7 @@ async def handle_message(api_key: str, message: str) -> None:
         max_tokens=4096,
         temperature=0.2,
     )
-    js_module.displayResponse(response.choices[0].message.content)
+    await js_module.displayResponse(response.choices[0].message.content)
 
 
 async def receiver() -> None:

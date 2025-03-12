@@ -4,7 +4,7 @@ async function setupPyodide() {
 
     // JavaScript functions to register with the Python environment
     const jsModule = {
-        displayResponse(response) {
+        async displayResponse(response) {
             const chatbox = document.getElementById("chatbox");
             chatbox.innerHTML += `<div><strong>AI:</strong> ${response}</div>`;
         }
