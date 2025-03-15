@@ -1,6 +1,6 @@
 [project]
 name = "pyodide-chat-gpt"
-version = "0.1.0"
+version = "0.2.0"
 description = "A small PoC Pyodide + OpenAI GPT integration"
 readme = "README.md"
 requires-python = "^3.13"
@@ -8,9 +8,24 @@ authors = [
   { name = "Jean-Pierre Chauvel", email = "jean.pierre@chauvel.org" }
 ]
 license = "CC0"
+dependencies = [
+    "flet==0.27.6",
+    "micropip==0.9.0"
+]
+
+[tool.flet]
+org = "org.chauvel"
+product = "pyodide-chat-gpt"
+company = "Chauvel"
+copyright = "Copyright (C) 2025 by Jean-Pierre Chauvel"
+
+[tool.flet.app]
+path = "src"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
+isort = "^6.0.1"
+flet = {version = "0.27.6", extras = ["all"]}
 
 [tool.black]
 line-length = 79

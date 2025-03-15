@@ -1,81 +1,117 @@
 import asyncio
-import json
-from urllib.parse import quote_plus
 
-import httpx
-import openai
-from pyodide.ffi import create_proxy
-import urllib3
+import flet as ft
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from core import configure_core, sender
 
-import js_module
+api_key: str = ""
 
 
-class URLLib3Transport(httpx.AsyncBaseTransport):
-    def __init__(self) -> None:
-        self.pool = urllib3.PoolManager()
+async def async_app(page: ft.Page) -> None:
+    # Set the browser's title bar text
+    page.title = "Pyodide Chat GPT"
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        payload = json.loads(request.content.decode("utf-8").replace("'", '"'))
-        urllib3_response = self.pool.request(
-            request.method,
-            str(request.url),
-            headers=request.headers,
-            json=payload,
-        )  # Convert httpx.URL to string
-        content = json.loads(
-            urllib3_response.data.decode("utf-8")
-        )  # Decode the data and load as JSON
-        stream = httpx.ByteStream(
-            json.dumps(content).encode("utf-8")
-        )  # Convert back to JSON and encode
-        headers = [(b"content-type", b"application/json")]
-        return httpx.Response(200, headers=headers, stream=stream)
-
-
-client: httpx.AsyncClient = httpx.AsyncClient(transport=URLLib3Transport())
-openai_client: openai.AsyncOpenAI = openai.AsyncOpenAI(
-    base_url="https://api.openai.com/v1/", api_key="", http_client=client
-)
-message_queue: asyncio.Queue[tuple[str, str]] = asyncio.Queue()
-loop: asyncio.AbstractEventLoop | None = None
-
-
-async def handle_message(api_key: str, message: str) -> None:
-    # Interactive with the OpenAI API
-    openai_client.api_key = api_key
-    response = await openai_client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": quote_plus(message),
-            }
-        ],
-        model="gpt-3.5-turbo",
-        max_tokens=4096,
-        temperature=0.2,
+    page.theme = ft.Theme(
+        color_scheme=ft.ColorScheme(
+            primary=ft.colors.BLUE,
+            on_primary=ft.colors.WHITE,
+            secondary=ft.colors.BLUE_500,
+            on_secondary=ft.colors.WHITE,
+            background=ft.colors.BLUE_50,
+            surface=ft.colors.BLUE_100,
+            on_surface=ft.colors.BLUE_900,
+        )
     )
-    await js_module.displayResponse(response.choices[0].message.content)
+
+    messages: list[str] = []
+
+    async def send_message(e) -> None:
+        if not message_input.value:
+            return
+        messages.append(f"You: {message_input.value}")
+        await sender(api_key, message_input.value)
+        message_input.value = ""
+        await update_messages_display()
+        # Set focus back to the message input
+        message_input.focus()
+
+    async def update_messages_display() -> None:
+        chat_display.value = "\n".join(messages)
+        chat_display.update()
+
+    async def callback(message: str | None) -> None:
+        messages.append(f"AI: {message}")
+        await update_messages_display()
+
+    async def submit_api_key(e) -> None:
+        global api_key
+        if api_key_input.value is not None:
+            api_key = api_key_input.value
+        page.close(api_key_dialog)
+
+    chat_display: ft.TextField = ft.TextField(
+        read_only=True,
+        multiline=True,
+        filled=True,
+        expand=False,
+    )
+    chat_display.height = 300  # Set fixed height
+    chat_display.width = 400  # Set fixed width
+
+    message_input: ft.TextField = ft.TextField(
+        label="Your Message",
+        autofocus=True,
+        on_submit=send_message,
+        filled=True,
+    )
+
+    send_button: ft.TextButton = ft.TextButton(
+        text="Send",
+        icon=ft.icons.SEND,
+        on_click=send_message,
+        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE, color=ft.colors.WHITE),
+    )
+
+    api_key_input: ft.TextField = ft.TextField(
+        label="OpenAI API Key (press Enter to skip)",
+        autofocus=True,
+        on_submit=submit_api_key,
+        filled=True,
+    )
+
+    api_key_dialog: ft.AlertDialog = ft.AlertDialog(
+        title=ft.Text("OpenAI API Key"),
+        modal=True,
+        content=api_key_input,
+        actions=[ft.TextButton("Submit", on_click=submit_api_key)],
+    )
+
+    page.add(
+        ft.Column(
+            controls=[
+                ft.Text(
+                    "Pyodide Chat GPT",
+                    size=24,
+                    weight=ft.FontWeight.BOLD,
+                    color=ft.colors.BLACK,
+                ),
+                chat_display,
+                ft.Row(
+                    controls=[message_input, send_button],
+                    spacing=10,
+                    alignment=ft.MainAxisAlignment.CENTER,  # Centering the row
+                ),
+            ],
+            spacing=20,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,  # Centering the column
+            expand=True,
+        )
+    )
+
+    page.open(api_key_dialog)
+
+    await configure_core(callback)
 
 
-async def receiver() -> None:
-    while True:
-        api_key, message = await message_queue.get()
-        await handle_message(api_key, message)
-
-
-def sender(api_key: str, message: str) -> None:
-    message_queue.put_nowait((api_key, message))
-
-
-async def main() -> None:
-    global loop
-
-    loop = asyncio.get_running_loop()
-    loop.create_task(receiver())
-    while True:
-        await asyncio.sleep(0.1)
-
-
-sender_message_proxy = create_proxy(sender)
+loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
+loop.run_until_complete(ft.app_async(async_app))

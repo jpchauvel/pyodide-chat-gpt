@@ -7,16 +7,22 @@ to interact with GPT 3.5 Turbo.
 
 ## Installation
 
-To build the project you have to first make sure you have `make` installed.
+To build the project you have to first make sure you have `poetry` installed.
 
 ```sh
-make all
+poetry install --no-root
 ```
 
-Then you have to serve the static contect using Python's `http.server`:
+Then you have to build the app.
 
 ```sh
-python3 -m http.server --directory build
+poetry run flet build web
+```
+
+Finally you have to run a python server to serve the app.
+
+```sh
+poetry run python -m http.server --directory build/web
 ```
 
 Then open your browser and navigate to http://localhost:8000.
